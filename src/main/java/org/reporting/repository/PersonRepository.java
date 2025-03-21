@@ -57,11 +57,11 @@ public class PersonRepository {
 
     private Person mapResultSetToPerson(ResultSet rs) throws SQLException {
         return new Person(
-            rs.getLong("id"),
-            rs.getString("person_number"),
-            rs.getString("person_source"),
-            rs.getString("first_name"),
-            rs.getString("last_name")
+//            rs.getLong("id"),
+//            rs.getString("person_number"),
+//            rs.getString("person_source"),
+//            rs.getString("first_name"),
+//            rs.getString("last_name")
         );
     }
 } 
