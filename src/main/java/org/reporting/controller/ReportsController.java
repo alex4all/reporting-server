@@ -5,28 +5,27 @@ import org.reporting.model.AsyncDataWrapper;
 import org.reporting.model.PagedResponse;
 import org.reporting.repository.ReportsRepository;
 import org.reporting.util.PaginationUtils;
-import jakarta.inject.Inject;
-import jakarta.ws.rs.GET;
-import jakarta.ws.rs.Path;
-import jakarta.ws.rs.Produces;
-import jakarta.ws.rs.QueryParam;
-import jakarta.ws.rs.core.MediaType;
-import jakarta.ws.rs.core.Response;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
 
-@Path("/api/reports")
-@Produces(MediaType.APPLICATION_JSON)
+@RestController
+@RequestMapping("/reports")
 public class ReportsController {
 
-    @Inject
-    private ReportsRepository reportsRepository;
+    private final ReportsRepository reportsRepository;
 
-    @GET
-    @Path("/active-users")
-    public Response getActiveUsers(
-            @QueryParam("sort_column") String sortColumn,
-            @QueryParam("sort_direction") String sortDirection,
-            @QueryParam("page_number") Integer pageNumber,
-            @QueryParam("page_size") Integer pageSize) {
+    @Autowired
+    public ReportsController(ReportsRepository reportsRepository) {
+        this.reportsRepository = reportsRepository;
+    }
+
+    @GetMapping("/active-users")
+    public ResponseEntity<PagedResponse<ActiveUser>> getActiveUsers(
+            @RequestParam(value = "sort_column", required = false) String sortColumn,
+            @RequestParam(value = "sort_direction", required = false) String sortDirection,
+            @RequestParam(value = "page_number", required = false) Integer pageNumber,
+            @RequestParam(value = "page_size", required = false) Integer pageSize) {
         
         // Get the async data wrapper (might be cached)
         AsyncDataWrapper<ActiveUser> dataWrapper = reportsRepository.getActiveUsers();
@@ -43,6 +42,6 @@ public class ReportsController {
             sortDirection
         );
 
-        return Response.ok(response).build();
+        return ResponseEntity.ok(response);
     }
 } 

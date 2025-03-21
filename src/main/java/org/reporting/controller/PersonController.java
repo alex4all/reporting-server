@@ -2,33 +2,35 @@ package org.reporting.controller;
 
 import org.reporting.model.Person;
 import org.reporting.repository.PersonRepository;
-import jakarta.inject.Inject;
-import jakarta.validation.constraints.Min;
-import jakarta.ws.rs.*;
-import jakarta.ws.rs.core.MediaType;
-import jakarta.ws.rs.core.Response;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.*;
 
+import jakarta.validation.constraints.Min;
 import java.util.List;
 
-@Path("/api/persons")
-@Produces(MediaType.APPLICATION_JSON)
-@Consumes(MediaType.APPLICATION_JSON)
+@RestController
+@RequestMapping("/persons")
+@Validated
 public class PersonController {
 
-    @Inject
-    private PersonRepository personRepository;
+    private final PersonRepository personRepository;
 
-    @GET
-    public Response getAllPersons() {
-        List<Person> persons = personRepository.findAll();
-        return Response.ok(persons).build();
+    @Autowired
+    public PersonController(PersonRepository personRepository) {
+        this.personRepository = personRepository;
     }
 
-    @GET
-    @Path("/{id}")
-    public Response getPersonById(@PathParam("id") @Min(1) Long id) {
+    @GetMapping
+    public ResponseEntity<List<Person>> getAllPersons() {
+        return ResponseEntity.ok(personRepository.findAll());
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<Person> getPersonById(@PathVariable @Min(1) Long id) {
         return personRepository.findById(id)
-                .map(person -> Response.ok(person).build())
-                .orElse(Response.status(Response.Status.NOT_FOUND).build());
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
     }
 } 

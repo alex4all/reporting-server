@@ -2,23 +2,30 @@ package org.reporting.repository;
 
 import org.reporting.model.ActiveUser;
 import org.reporting.model.AsyncDataWrapper;
-import jakarta.enterprise.context.ApplicationScoped;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Repository;
+import org.springframework.scheduling.annotation.Scheduled;
+import jakarta.annotation.PreDestroy;
 
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-@ApplicationScoped
+@Repository
 public class ReportsRepository {
-    private static final String DB_URL = "jdbc:postgresql://localhost:5432/yourdb";
-    private static final String DB_USER = "your_username";
-    private static final String DB_PASSWORD = "your_password";
+    @Value("${spring.datasource.url}")
+    private String dbUrl;
+    
+    @Value("${spring.datasource.username}")
+    private String dbUser;
+    
+    @Value("${spring.datasource.password}")
+    private String dbPassword;
     
     private final ConcurrentHashMap<String, AsyncDataWrapper<ActiveUser>> activeUsersCache = new ConcurrentHashMap<>();
     private final ScheduledExecutorService cleanupExecutor = Executors.newSingleThreadScheduledExecutor();
@@ -26,14 +33,9 @@ public class ReportsRepository {
     private static final long CLEANUP_INTERVAL_MINUTES = 5;
     private static final int DEFAULT_BATCH_SIZE = 20;
 
-    public ReportsRepository() {
-        // Schedule cache cleanup every 5 minutes
-        cleanupExecutor.scheduleAtFixedRate(
-            this::cleanupCache,
-            CLEANUP_INTERVAL_MINUTES,
-            CLEANUP_INTERVAL_MINUTES,
-            TimeUnit.MINUTES
-        );
+    @Scheduled(fixedRate = CLEANUP_INTERVAL_MINUTES * 60 * 1000) // Convert minutes to milliseconds
+    public void cleanupCache() {
+        activeUsersCache.entrySet().removeIf(entry -> entry.getValue().isExpired());
     }
 
     public AsyncDataWrapper<ActiveUser> getActiveUsers() {
@@ -113,7 +115,7 @@ public class ReportsRepository {
     }
 
     private Connection getConnection() throws SQLException {
-        return DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD);
+        return DriverManager.getConnection(dbUrl, dbUser, dbPassword);
     }
 
     private ActiveUser mapResultSetToActiveUser(ResultSet rs) throws SQLException {
@@ -127,12 +129,7 @@ public class ReportsRepository {
         );
     }
 
-    private void cleanupCache() {
-        activeUsersCache.entrySet().removeIf(entry -> entry.getValue().isExpired());
-    }
-
-    // Cleanup executor on application shutdown
-    @jakarta.annotation.PreDestroy
+    @PreDestroy
     public void destroy() {
         cleanupExecutor.shutdown();
         try {
